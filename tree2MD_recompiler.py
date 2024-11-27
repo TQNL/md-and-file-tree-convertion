@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+## `*.comb` folder are the same as direct txt-files, remove
+## those folders should give their combined name as a new header
+
 import os
 import re
 from tkinter import Tk
@@ -25,8 +28,8 @@ def folder_to_markdown(folder_path, level=1):
     """Recursively traverse the folder structure and reconstruct Markdown."""
     markdown_lines = []
 
-    # Regex pattern to match `.comb.txt` or `.combX.txt`
-    comb_pattern = re.compile(r"\.comb(\d*)\.txt$")
+    # Regex to match `.combX` folder names
+    comb_pattern = re.compile(r"^(.*)\.comb(\d+)$")  # Captures base name and numeric suffix
 
     # Get entries sorted by creation time
     entries = sorted(
@@ -34,29 +37,36 @@ def folder_to_markdown(folder_path, level=1):
         key=lambda e: os.path.getctime(os.path.join(folder_path, e))
     )
 
+    combined_folders = {}  # Dictionary to group `.combX` folders by base name
+
     for entry in entries:
         entry_path = os.path.join(folder_path, entry)
 
         if os.path.isdir(entry_path):
-            # Add a header for the folder
-            markdown_lines.append(f"{'#' * level} {entry}")
-            # Recurse into the folder
-            markdown_lines.extend(folder_to_markdown(entry_path, level + 1))
-        elif comb_pattern.search(entry):  # Match `.comb.txt` and `.combX.txt`
-            with open(entry_path, "r", encoding="utf-8") as file:
-                content = file.read().strip()
-            if content:
-                markdown_lines.append(content)
-                markdown_lines.append("")  # Blank line after each file content
+            match = comb_pattern.match(entry)
+            if match:
+                # Group `.combX` folders by their base name
+                base_name = match.group(1)
+                if base_name not in combined_folders:
+                    combined_folders[base_name] = []
+                combined_folders[base_name].append(entry_path)
+            else:
+                # Regular folder names become headers
+                markdown_lines.append(f"{'#' * level} {entry}")
+                markdown_lines.extend(folder_to_markdown(entry_path, level + 1))
         elif entry.endswith(".txt"):
-            # For regular .txt files, add the file name as a header
-            header_name = os.path.splitext(entry)[0]
-            markdown_lines.append(f"{'#' * level} {header_name}")
+            # Regular .txt files represent content for the folder header
             with open(entry_path, "r", encoding="utf-8") as file:
                 content = file.read().strip()
             if content:
                 markdown_lines.append(content)
-                markdown_lines.append("")  # Blank line after content
+                markdown_lines.append("")  # Blank line after the content
+
+    # Process grouped `.combX` folders
+    for base_name, paths in combined_folders.items():
+        markdown_lines.append(f"{'#' * level} {base_name}")  # Combined header
+        for path in paths:
+            markdown_lines.extend(folder_to_markdown(path, level + 1))
 
     return markdown_lines
 
@@ -64,7 +74,7 @@ def folder_to_markdown(folder_path, level=1):
 def main():
     Tk().withdraw()  # Hide the root Tkinter window
 
-    # Step 1: Select the root folder
+    # Step 1: Select the root folder of the structure
     folder_path = askdirectory(title="Select the Folder Structure to Reconstruct")
     if not folder_path:
         print("No folder selected. Exiting.")

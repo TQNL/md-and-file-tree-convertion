@@ -14,6 +14,7 @@ This repository contains two scripts for converting between Markdown (`.md`) fil
 - **Headers** (`#`, `##`, etc.) are converted to folders.
 - Content under headers without sub-headers is stored in `.txt` files.
 - Handles duplicate `.txt` filenames by appending `.combX.txt` suffixes (where `X` is a numeric counter).
+- If a skipped level is detected (e.g., # followed by ###), the script automatically creates placeholder nodes for the missing levels.
 
 ### Script 2: `tree2MD_recompiler.py`
 **Purpose**: Converts a folder and file structure back into a Markdown file.

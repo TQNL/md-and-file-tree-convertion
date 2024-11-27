@@ -54,8 +54,6 @@ class Node:
             count += 1  # Count the current node
             if node.content.strip():  # If there is content, count the corresponding .txt file
                 count += 1
-                print(f"Counting .txt file for node: {node.name}, current count: {count}")
-            print(f"Counting node: {node.name}, current count: {count}")
             for child in node.children:  # Recursively count children
                 counter(child)
 
@@ -96,31 +94,23 @@ class Node:
 
 
 def rename_duplicate_folders(root_folder):
-    """Rename duplicate folder names across the directory with `.combX` suffix."""
-    folder_counts = {}
-    suffix_counts = {}
+    """Rename duplicate folder names by appending `.combX` to each instance."""
+    folder_names = {}  # Dictionary to track folder names and their occurrences
 
-    # First pass: Count occurrences of each folder name
-    for dirpath, dirnames, _ in os.walk(root_folder):
+    # First pass: Traverse the structure and collect folder names
+    for dirpath, dirnames, _ in os.walk(root_folder, topdown=False):
         for foldername in dirnames:
-            folder_counts[foldername] = folder_counts.get(foldername, 0) + 1
+            if foldername not in folder_names:
+                folder_names[foldername] = []
+            folder_names[foldername].append(os.path.join(dirpath, foldername))
 
-    # Find duplicates and rename them
-    for dirpath, dirnames, _ in os.walk(root_folder):
-        for foldername in dirnames:
-            if folder_counts[foldername] > 1:
-                # Assign a unique `.combX` suffix
-                suffix = suffix_counts.get(foldername, 0)
-                suffix_counts[foldername] = suffix + 1
-
-                # Rename the folder
-                old_path = os.path.join(dirpath, foldername)
-                new_name = f"{foldername}.comb{suffix}"
-                new_path = os.path.join(dirpath, new_name)
-                os.rename(old_path, new_path)
-
-                # Update the folder count to avoid renaming the same folder again
-                folder_counts[foldername] -= 1
+    # Second pass: Rename duplicates
+    for foldername, paths in folder_names.items():
+        if len(paths) > 1:  # Only process duplicates
+            for i, path in enumerate(paths):
+                new_name = f"{foldername}.comb{i}"
+                new_path = os.path.join(os.path.dirname(path), new_name)
+                os.rename(path, new_path)
 
 
 def parse_markdown(markdown_text):
@@ -190,7 +180,7 @@ def main():
 
     # Step 4: Count the total elements (folders and files) to estimate time
     total_elements = tree.count_elements()
-    estimated_time = int(total_elements * 1.3)  # Multiply by 1.3 for accuracy
+    estimated_time = int(total_elements)
 
     # Step 5: Select the root folder for creating the structure
     root_folder = askdirectory(title="Select a Root Folder for Folder Structure")
@@ -204,17 +194,12 @@ def main():
         f"Estimated time with delay: {estimated_time} seconds.\nAdd delay?"
     )
 
-    # Step 7: Create the folder and file structure with a timer
-    start_time = time.time() if add_delay else None  # Start timer if delay is enabled
+    # Step 7: Create the folder and file structure
     try:
         print("\nCreating folder structure...")
         for child in tree.children:  # Start creating folders from top-level nodes
             child.create_structure(root_folder, add_delay=add_delay)
-        elapsed_time = time.time() - start_time if start_time else 0
         print(f"Folder structure created successfully in: {root_folder}")
-        print(f"Total elements created: {total_elements}")
-        if start_time:
-            print(f"Elapsed time: {elapsed_time:.2f} seconds")
     except Exception as e:
         print(f"Error creating folder structure: {e}")
         return
@@ -222,7 +207,11 @@ def main():
     # Step 8: Ask user if they want to rename duplicate folders
     rename_folders = askyesno(
         "Rename Duplicate Folders",
-        "Do you want to identify and rename duplicate folders with a `.combX` suffix?"
+        (
+            "WARNING: Ensure that the root folder does not contain unrelated folders.\n"
+            "Unrelated folders with duplicate names may also be renamed with a `.combX` suffix.\n\n"
+            "Do you want to identify and rename duplicate folders?"
+        )
     )
     if rename_folders:
         rename_duplicate_folders(root_folder)

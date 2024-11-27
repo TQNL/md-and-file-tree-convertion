@@ -14,6 +14,7 @@ This script reads a Markdown (`.md`) file and converts its hierarchical structur
 2. **Folder and File Creation**:
    - Creates folders for each Markdown header.
    - Stores the content of headers without sub-headers in `.txt` files.
+   - If a skipped level is detected (e.g., # followed by ###), the script automatically creates placeholder nodes for the missing levels.
 
 3. **Delay Option**:
    - Offers the user an optional 1-second delay between file/folder creations for systems that need distinct creation timestamps.
@@ -60,6 +61,7 @@ This script reads a directory and file structure and reconstructs it into a Mark
 
 2. **File Combination**:
    - Combines the content of `.comb.txt` and `.combX.txt` files into the parent header.
+   - `*.comb.txt` makes it so the script doesn't generate a header for it
 
 3. **Header Levels**:
    - Allows the user to specify the Markdown header level (`#`, `##`, etc.) for the root folder.
