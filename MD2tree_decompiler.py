@@ -32,114 +32,133 @@ class Node:
         self.children.append(child)
 
     def display(self, prefix="", is_last=True):
-        """Display the tree structure using branching characters."""
+        """Display the tree structure including folders and .txt files."""
         connector = "└── " if is_last else "├── "
         print(prefix + connector + self.name)
+
+        # Print the .txt file if there is content
+        if self.content.strip():
+            txt_connector = "    " if is_last else "│   "
+            print(prefix + txt_connector + f"└── {self.name}.txt")
+
         prefix += "    " if is_last else "│   "
         for i, child in enumerate(self.children):
             child.display(prefix, is_last=(i == len(self.children) - 1))
 
     def count_elements(self):
         """Count the total number of folders and files in the tree."""
-        count = 1 if not self.children else 0  # Count as a file if it's a leaf
-        for child in self.children:
-            count += child.count_elements()
+        count = 0  # Initialize the count
+
+        def counter(node):
+            nonlocal count  # Use 'count' from the enclosing scope
+            count += 1  # Count the current node
+            if node.content.strip():  # If there is content, count the corresponding .txt file
+                count += 1
+                print(f"Counting .txt file for node: {node.name}, current count: {count}")
+            print(f"Counting node: {node.name}, current count: {count}")
+            for child in node.children:  # Recursively count children
+                counter(child)
+
+        counter(self)
         return count
 
     def create_structure(self, base_path, add_delay=False):
         """Recursively create folders or files based on the structure."""
-        if self.children:
-            # Create a folder for this node if it has children
-            current_path = os.path.join(base_path, self.name)
-            os.makedirs(current_path, exist_ok=True)
-            if add_delay:
-                time.sleep(1)  # Add 1-second delay
-            for child in self.children:
-                child.create_structure(current_path, add_delay)
-        else:
-            # Create a .txt file for this leaf node in the parent folder
-            txt_file_path = os.path.join(base_path, f"{self.name}.txt")
+        folder_name = self.name
+        folder_path = os.path.join(base_path, folder_name)
+
+        # Track used names in the current directory to handle duplicates
+        used_names = set(os.listdir(base_path))
+
+        # Ensure unique folder name by appending `_N` if needed
+        counter = 1
+        while folder_name in used_names:
+            folder_name = f"{self.name}_{counter}"
+            folder_path = os.path.join(base_path, folder_name)
+            counter += 1
+
+        # Create the folder
+        os.makedirs(folder_path, exist_ok=True)
+        if add_delay:
+            time.sleep(1)  # Add 1-second delay
+
+        # Save content as a .txt file if it exists
+        if self.content.strip():
+            txt_file_path = os.path.join(folder_path, f"{self.name}.txt")
             with open(txt_file_path, "w", encoding="utf-8") as file:
                 file.write(self.content.strip())
             if add_delay:
                 time.sleep(1)  # Add 1-second delay
 
-
-def identify_duplicate_files(root_folder):
-    """Identify all duplicate file names across the folder structure."""
-    file_counts = {}
-
-    # First pass: Count occurrences of each file name (without extension)
-    for dirpath, _, filenames in os.walk(root_folder):
-        for filename in filenames:
-            if filename.endswith(".txt") and not filename.endswith(".comb.txt"):
-                name_without_extension = os.path.splitext(filename)[0]
-                file_counts[name_without_extension] = file_counts.get(name_without_extension, 0) + 1
-
-    # Find names with more than one occurrence
-    duplicates = {name for name, count in file_counts.items() if count > 1}
-    return duplicates
+        # Create subfolders or files for children
+        for child in self.children:
+            child.create_structure(folder_path, add_delay)
 
 
-def rename_duplicate_txt_files(root_folder, duplicates):
-    """Rename all duplicate .txt files to .comb.txt with numeric suffix."""
-    suffix_counts = {}  # Track the numeric suffix for each duplicate name
+def rename_duplicate_folders(root_folder):
+    """Rename duplicate folder names across the directory with `.combX` suffix."""
+    folder_counts = {}
+    suffix_counts = {}
 
-    # Second pass: Rename duplicate files
-    for dirpath, _, filenames in os.walk(root_folder):
-        for filename in filenames:
-            if filename.endswith(".txt") and not filename.endswith(".comb.txt"):
-                name_without_extension = os.path.splitext(filename)[0]
+    # First pass: Count occurrences of each folder name
+    for dirpath, dirnames, _ in os.walk(root_folder):
+        for foldername in dirnames:
+            folder_counts[foldername] = folder_counts.get(foldername, 0) + 1
 
-                if name_without_extension in duplicates:
-                    # Increment the suffix count
-                    suffix = suffix_counts.get(name_without_extension, 0)
-                    suffix_counts[name_without_extension] = suffix + 1
+    # Find duplicates and rename them
+    for dirpath, dirnames, _ in os.walk(root_folder):
+        for foldername in dirnames:
+            if folder_counts[foldername] > 1:
+                # Assign a unique `.combX` suffix
+                suffix = suffix_counts.get(foldername, 0)
+                suffix_counts[foldername] = suffix + 1
 
-                    # Rename the file with a numeric suffix
-                    old_path = os.path.join(dirpath, filename)
-                    new_name = f"{name_without_extension}.comb{suffix}.txt"
-                    new_path = os.path.join(dirpath, new_name)
-                    os.rename(old_path, new_path)
+                # Rename the folder
+                old_path = os.path.join(dirpath, foldername)
+                new_name = f"{foldername}.comb{suffix}"
+                new_path = os.path.join(dirpath, new_name)
+                os.rename(old_path, new_path)
+
+                # Update the folder count to avoid renaming the same folder again
+                folder_counts[foldername] -= 1
 
 
 def parse_markdown(markdown_text):
-    """Parse a Markdown file into a hierarchical structure."""
+    """Parse a Markdown file into a hierarchical structure with placeholders for skipped levels."""
     lines = markdown_text.splitlines()
     header_pattern = re.compile(r"^(#{1,6})\s+(.*)$")
 
     root_node = Node("Selected Root")
-    current_nodes = {0: root_node}
-
-    current_content = []  # To accumulate text under a header
+    current_nodes = {0: root_node}  # Tracks the current node at each level
 
     for line in lines:
         match = header_pattern.match(line)
         if match:
-            # Save accumulated content for the previous header
-            if current_content and level in current_nodes:
-                current_nodes[level].content = "\n".join(current_content).strip()
-                current_content = []
-
-            # Process the new header
             level = len(match.group(1))  # Number of '#' determines the level
             header_text = match.group(2).strip()
 
+            # Dynamically add placeholder nodes for skipped levels
+            if level - 1 not in current_nodes:
+                for missing_level in range(1, level):
+                    if missing_level not in current_nodes:
+                        placeholder_node = Node(f"Placeholder Level {missing_level}")
+                        parent_node = current_nodes[missing_level - 1]
+                        parent_node.add_child(placeholder_node)
+                        current_nodes[missing_level] = placeholder_node
+
+            # Create the current node
             new_node = Node(header_text)
-            parent_node = current_nodes.get(level - 1, root_node)
+            parent_node = current_nodes[level - 1]
             parent_node.add_child(new_node)
             current_nodes[level] = new_node
 
-            # Remove any deeper nodes that are no longer relevant
+            # Remove nodes deeper than the current level
             for deeper_level in range(level + 1, 7):
                 current_nodes.pop(deeper_level, None)
         else:
-            # Accumulate content for the current header
-            current_content.append(line)
-
-    # Handle the last accumulated content
-    if current_content and level in current_nodes:
-        current_nodes[level].content = "\n".join(current_content).strip()
+            # Add content to the last valid header
+            if current_nodes:
+                current_nodes[max(current_nodes.keys())].content += line.strip() + "\n"
 
     return root_node
 
@@ -185,25 +204,29 @@ def main():
         f"Estimated time with delay: {estimated_time} seconds.\nAdd delay?"
     )
 
-    # Step 7: Create the folder and file structure
+    # Step 7: Create the folder and file structure with a timer
+    start_time = time.time() if add_delay else None  # Start timer if delay is enabled
     try:
         print("\nCreating folder structure...")
         for child in tree.children:  # Start creating folders from top-level nodes
             child.create_structure(root_folder, add_delay=add_delay)
+        elapsed_time = time.time() - start_time if start_time else 0
         print(f"Folder structure created successfully in: {root_folder}")
+        print(f"Total elements created: {total_elements}")
+        if start_time:
+            print(f"Elapsed time: {elapsed_time:.2f} seconds")
     except Exception as e:
         print(f"Error creating folder structure: {e}")
         return
 
-    # Step 8: Identify and rename duplicate .txt files
-    rename_files = askyesno(
-        "Rename Files",
-        "Do you want to rename all duplicate .txt files to .comb.txt with numeric suffix?"
+    # Step 8: Ask user if they want to rename duplicate folders
+    rename_folders = askyesno(
+        "Rename Duplicate Folders",
+        "Do you want to identify and rename duplicate folders with a `.combX` suffix?"
     )
-    if rename_files:
-        duplicates = identify_duplicate_files(root_folder)
-        rename_duplicate_txt_files(root_folder, duplicates)
-        print("Renaming of duplicate .txt files completed.")
+    if rename_folders:
+        rename_duplicate_folders(root_folder)
+        print("Duplicate folders have been renamed with `.combX` suffixes.")
 
 
 if __name__ == "__main__":
