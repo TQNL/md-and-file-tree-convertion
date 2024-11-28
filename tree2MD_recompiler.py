@@ -14,9 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-## `*.comb` folder are the same as direct txt-files, remove
-## those folders should give their combined name as a new header
-
 import os
 import re
 from tkinter import Tk
@@ -60,7 +57,8 @@ def folder_to_markdown(folder_path, level=1):
                 content = file.read().strip()
             if content:
                 markdown_lines.append(content)
-                markdown_lines.append("")  # Blank line after the content
+                # Add blank lines and a <br> to separate contents visibly in Markdown
+                markdown_lines.append("")
                 markdown_lines.append("<br>")
                 markdown_lines.append("")
 
@@ -69,6 +67,8 @@ def folder_to_markdown(folder_path, level=1):
         markdown_lines.append(f"{'#' * level} {base_name}")  # Combined header
         for path in paths:
             markdown_lines.extend(folder_to_markdown(path, level + 1))
+        # Remove the last 2 lines to handle trailing `<br>` for combined content
+        markdown_lines = markdown_lines[:-2]
 
     return markdown_lines
 
