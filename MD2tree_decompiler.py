@@ -60,37 +60,42 @@ class Node:
         counter(self)
         return count
 
-    def create_structure(self, base_path, add_delay=False):
-        """Recursively create folders or files based on the structure."""
-        folder_name = self.name
+def create_structure(self, base_path, add_delay=False):
+    """Recursively create folders or files based on the structure."""
+    folder_name = self.name
+    folder_path = os.path.join(base_path, folder_name)
+
+    # Track used names in the current directory to handle duplicates
+    used_names = set(os.listdir(base_path))
+
+    # Ensure unique folder name by appending `_N` if needed
+    counter = 1
+    while folder_name in used_names:
+        folder_name = f"{self.name}_{counter}"
         folder_path = os.path.join(base_path, folder_name)
+        counter += 1
 
-        # Track used names in the current directory to handle duplicates
-        used_names = set(os.listdir(base_path))
+    # Create the folder
+    os.makedirs(folder_path, exist_ok=True)
+    if add_delay:
+        time.sleep(1)  # Add 1-second delay
 
-        # Ensure unique folder name by appending `_N` if needed
-        counter = 1
-        while folder_name in used_names:
-            folder_name = f"{self.name}_{counter}"
-            folder_path = os.path.join(base_path, folder_name)
-            counter += 1
+    # Save content as a .txt file if it exists
+    if self.content:
+        txt_file_path = os.path.join(folder_path, f"{self.name}.txt")
+        with open(txt_file_path, "w", encoding="utf-8") as file:
+            file.write(self.content)  # Write content as-is
 
-        # Create the folder
-        os.makedirs(folder_path, exist_ok=True)
+        # Check if the file contains only whitespace and delete it if necessary
+        if self.content.strip() == "":
+            os.remove(txt_file_path)
+
         if add_delay:
             time.sleep(1)  # Add 1-second delay
 
-        # Save content as a .txt file if it exists
-        if self.content.strip():
-            txt_file_path = os.path.join(folder_path, f"{self.name}.txt")
-            with open(txt_file_path, "w", encoding="utf-8") as file:
-                file.write(self.content.strip())
-            if add_delay:
-                time.sleep(1)  # Add 1-second delay
-
-        # Create subfolders or files for children
-        for child in self.children:
-            child.create_structure(folder_path, add_delay)
+    # Create subfolders or files for children
+    for child in self.children:
+        child.create_structure(folder_path, add_delay)
 
 
 def rename_duplicate_folders(root_folder):
