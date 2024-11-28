@@ -60,42 +60,39 @@ class Node:
         counter(self)
         return count
 
-def create_structure(self, base_path, add_delay=False):
-    """Recursively create folders or files based on the structure."""
-    folder_name = self.name
-    folder_path = os.path.join(base_path, folder_name)
-
-    # Track used names in the current directory to handle duplicates
-    used_names = set(os.listdir(base_path))
-
-    # Ensure unique folder name by appending `_N` if needed
-    counter = 1
-    while folder_name in used_names:
-        folder_name = f"{self.name}_{counter}"
+    def create_structure(self, base_path, add_delay=False):
+        """Recursively create folders or files based on the structure."""
+        folder_name = self.name
         folder_path = os.path.join(base_path, folder_name)
-        counter += 1
 
-    # Create the folder
-    os.makedirs(folder_path, exist_ok=True)
-    if add_delay:
-        time.sleep(1)  # Add 1-second delay
+        # Track used names in the current directory to handle duplicates
+        used_names = set(os.listdir(base_path))
 
-    # Save content as a .txt file if it exists
-    if self.content:
-        txt_file_path = os.path.join(folder_path, f"{self.name}.txt")
-        with open(txt_file_path, "w", encoding="utf-8") as file:
-            file.write(self.content)  # Write content as-is
+        # Ensure unique folder name by appending `_N` if needed
+        counter = 1
+        while folder_name in used_names:
+            folder_name = f"{self.name}_{counter}"
+            folder_path = os.path.join(base_path, folder_name)
+            counter += 1
 
-        # Check if the file contains only whitespace and delete it if necessary
-        if self.content.strip() == "":
-            os.remove(txt_file_path)
-
+        # Create the folder
+        os.makedirs(folder_path, exist_ok=True)
         if add_delay:
             time.sleep(1)  # Add 1-second delay
 
-    # Create subfolders or files for children
-    for child in self.children:
-        child.create_structure(folder_path, add_delay)
+        # Save content as a .txt file if it exists
+        if self.content:
+            txt_file_path = os.path.join(folder_path, f"{self.name}.txt")
+            with open(txt_file_path, "w", encoding="utf-8") as file:
+                file.write(self.content)  # Write content as-is
+
+            # Check if the file contains only whitespace and delete it if necessary
+            if not self.content.strip():  # If content is empty or only whitespace
+                os.remove(txt_file_path)
+
+        # Create subfolders or files for children
+        for child in self.children:
+            child.create_structure(folder_path, add_delay)
 
 
 def rename_duplicate_folders(root_folder):
@@ -120,7 +117,7 @@ def rename_duplicate_folders(root_folder):
 
 def parse_markdown(markdown_text):
     """Parse a Markdown file into a hierarchical structure with placeholders for skipped levels."""
-    lines = markdown_text.splitlines()
+    lines = markdown_text.splitlines(keepends=True)  # Keep newlines intact
     header_pattern = re.compile(r"^(#{1,6})\s+(.*)$")
 
     root_node = Node("Selected Root")
@@ -153,7 +150,7 @@ def parse_markdown(markdown_text):
         else:
             # Add content to the last valid header
             if current_nodes:
-                current_nodes[max(current_nodes.keys())].content += line.strip() + "\n"
+                current_nodes[max(current_nodes.keys())].content += line  # Keep original formatting
 
     return root_node
 
