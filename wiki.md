@@ -1,166 +1,110 @@
-Here’s a detailed documentation for the two scripts provided:
+# Detailed Documentation of Features: MD2tree Decompiler and Tree2MD Recompiler
 
----
+## **1. MD2tree Decompiler**
+The MD2tree Decompiler converts a Markdown file into a hierarchical folder structure, with headers as folder names and content under those headers saved as `.txt` files. 
 
-## Script 1: `MD2tree_decompiler.py`
-### Purpose
-This script reads a Markdown (`.md`) file and converts its hierarchical structure into a corresponding directory and file structure. Additionally, it provides functionality to rename `.txt` files with duplicate names, appending a `.combX.txt` suffix where `X` is a numeric counter.
-
-### Features
+### **Key Features**
 1. **Markdown Parsing**:
-   - Converts Markdown headers into folders.
-   - Converts leaf-level text content into `.txt` files.
+   - Reads a Markdown file and parses headers (`#` to `######`) to determine hierarchy levels.
+   - Supports skipped heading levels by adding placeholder folders (e.g., "Placeholder Level 2").
 
-2. **Folder and File Creation**:
-   - Creates folders for each Markdown header.
-   - Stores the content of headers without sub-headers in `.txt` files.
-   - If a skipped level is detected (e.g., # followed by ###), the script automatically creates placeholder nodes for the missing levels.
+2. **Tree Representation**:
+   - Builds a hierarchical tree structure using a `Node` class.
+   - Each node can represent a folder or a `.txt` file with associated content.
 
-3. **Delay Option**:
-   - Offers the user an optional 1-second delay between file/folder creations for systems that need distinct creation timestamps.
+3. **Folder and File Creation**:
+   - Creates folders and files based on the parsed Markdown structure.
+   - Ensures unique folder names by appending `_N` to duplicates.
 
-4. **Duplicate File Handling**:
-   - Identifies `.txt` files with duplicate names across the directory structure.
-   - Renames these files with a `.combX.txt` suffix, where `X` ensures uniqueness.
+4. **Whitespace Handling**:
+   - Retains original newlines and whitespace in content.
+   - Deletes `.txt` files that contain only whitespace after creation.
 
-### How to Use
-1. **Run the Script**:
-   ```bash
-   python MD2tree_decompiler.py
-   ```
-2. **Input**:
-   - Select a Markdown file using a file dialog.
-   - Choose a root directory where the structure will be created.
+5. **Duplicate Folder Renaming**:
+   - Identifies duplicate folder names and appends `.combX` to their names.
 
-3. **Optional Delay**:
-   - Decide whether to add a 1-second delay between each creation.
+6. **Interactive GUI**:
+   - Prompts the user to select the Markdown file and output directory using Tkinter dialogs.
+   - Allows the user to decide whether to add a delay between folder/file creation and handle duplicate folder renaming.
 
-4. **Duplicate Renaming**:
-   - If enabled, renames `.txt` files with duplicate names by appending a `.combX.txt` suffix.
+7. **Estimated Time Display**:
+   - Calculates and displays the estimated time for structure creation based on the number of folders and files.
 
-### Code Workflow
-1. **Parse Markdown**:
-   - Reads the Markdown file and converts it into a tree-like `Node` structure.
-   - Headers (`#`, `##`, etc.) become nodes, and their hierarchy determines the directory structure.
-2. **Create Structure**:
-   - Recursively creates directories and `.txt` files based on the parsed tree.
-3. **Identify Duplicates**:
-   - Scans the created structure for `.txt` files with duplicate names.
-4. **Rename Files**:
-   - Appends `.combX.txt` suffixes to duplicate file names.
+### **Workflow**
+1. **Select a Markdown File**:
+   - User selects a `.md` file for conversion.
+2. **Parse Markdown**:
+   - Headers become folder names, and content becomes `.txt` files.
+3. **Choose Output Directory**:
+   - User selects the root folder for saving the generated structure.
+4. **Create Structure**:
+   - Folders and files are created based on the parsed Markdown.
+5. **Rename Duplicates**:
+   - Optionally renames duplicate folders with a `.combX` suffix.
 
 ---
 
-## Script 2: `tree2MD_recompiler.py`
-### Purpose
-This script reads a directory and file structure and reconstructs it into a Markdown file. It supports `.comb.txt` and `.combX.txt` files, combining their content under their parent headers.
+## **2. Tree2MD Recompiler**
+The Tree2MD Recompiler reverses the process of the MD2tree Decompiler. It converts a hierarchical folder structure back into a Markdown document.
 
-### Features
-1. **Directory Parsing**:
-   - Traverses the directory tree and converts it into a Markdown file.
+### **Key Features**
+1. **Folder Traversal**:
+   - Recursively traverses a folder structure to reconstruct Markdown headers and content.
+   - Includes `.combX` folders as combined headers with corresponding content.
 
-2. **File Combination**:
-   - Combines the content of `.comb.txt` and `.combX.txt` files into the parent header.
-   - `*.comb.txt` makes it so the script doesn't generate a header for it
+2. **Markdown Conversion**:
+   - Folder names are treated as headers, with their level determined by the folder depth.
+   - Content from `.txt` files is added under the corresponding headers.
 
-3. **Header Levels**:
-   - Allows the user to specify the Markdown header level (`#`, `##`, etc.) for the root folder.
+3. **Combining `.combX` Folders**:
+   - Handles `.combX` folders by grouping them under a single base header (e.g., `FolderName.comb0` and `FolderName.comb1` become `FolderName`).
 
-### How to Use
-1. **Run the Script**:
-   ```bash
-   python tree2MD_recompiler.py
-   ```
-2. **Input**:
-   - Select the root directory of the folder structure.
-   - Specify the Markdown header level for the root directory.
-   - Choose a save location for the reconstructed Markdown file.
+4. **Output Customization**:
+   - Allows the user to specify the root folder header level (e.g., `#`, `##`).
+   - Orders entries by creation time for consistent results.
 
-3. **Output**:
-   - Generates a Markdown file that represents the folder structure.
+5. **Interactive GUI**:
+   - Uses Tkinter dialogs to let the user:
+     - Select the root folder to convert.
+     - Set the root folder's header level.
+     - Choose the output Markdown file's save location.
 
-### Code Workflow
-1. **Directory Traversal**:
-   - Traverses the directory tree recursively.
-   - Uses the creation time to order files and folders.
-2. **File Handling**:
-   - Combines the contents of `.comb.txt` and `.combX.txt` files.
-   - Adds regular `.txt` files as individual headers with their content below.
-3. **Markdown Construction**:
-   - Builds a Markdown file from the folder and file hierarchy.
+6. **Error Handling**:
+   - Gracefully handles invalid selections (e.g., canceling folder selection or save dialogs).
+   - Avoids processing files that are not `.txt`.
 
----
-
-## Shared Functionalities and Concepts
-### Key Class: `Node`
-Used in `MD2tree_decompiler.py`:
-- Represents a folder or file in the parsed Markdown tree.
-- Provides methods for creating a corresponding folder/file structure and calculating time estimates.
-
-### Regex Matching
-Used in `tree2MD_recompiler.py`:
-- Matches files with `.comb.txt` or `.combX.txt` extensions:
-  ```python
-  comb_pattern = re.compile(r"\.comb(\d*)\.txt$")
-  ```
-
-### Time Estimate
-In `MD2tree_decompiler.py`:
-- Estimates time based on the number of elements (folders/files) multiplied by 1.3.
+### **Workflow**
+1. **Select Root Folder**:
+   - User selects a folder structure for reconstruction.
+2. **Choose Header Level**:
+   - User specifies the Markdown header level for the root folder.
+3. **Traverse Folder Structure**:
+   - Processes subfolders as headers and `.txt` files as content.
+4. **Save Markdown File**:
+   - Prompts the user to choose a save location for the reconstructed Markdown.
 
 ---
 
-## Example Use Cases
-### Case 1: Converting Markdown to Folder Structure
-**Markdown File**:
-```markdown
-# Root
-## Subfolder1
-### Subfolder1.1
-Some text content for Subfolder1.1.
-## Subfolder2
-Text content for Subfolder2.
-```
+## **Comparison of Features**
 
-**Generated Folder Structure**:
-```
-Root/
-├── Subfolder1/
-│   └── Subfolder1.1.txt (contains "Some text content for Subfolder1.1.")
-└── Subfolder2.txt (contains "Text content for Subfolder2.")
-```
-
-### Case 2: Reconstructing Markdown from Folder Structure
-**Folder Structure**:
-```
-Root/
-├── Subfolder1/
-│   ├── Subfolder1.1.comb0.txt (contains "Part 1 of combined content.")
-│   └── Subfolder1.1.comb1.txt (contains "Part 2 of combined content.")
-└── Subfolder2.txt (contains "Text content for Subfolder2.")
-```
-
-**Reconstructed Markdown**:
-```markdown
-# Root
-## Subfolder1
-Part 1 of combined content.
-
-Part 2 of combined content.
-
-## Subfolder2
-Text content for Subfolder2.
-```
+| Feature                              | MD2tree Decompiler                         | Tree2MD Recompiler                         |
+|--------------------------------------|--------------------------------------------|--------------------------------------------|
+| **Primary Function**                 | Converts Markdown to folder structure.     | Converts folder structure to Markdown.     |
+| **Input**                            | Markdown file (`.md`).                     | Root folder containing hierarchical data.  |
+| **Output**                           | Folder structure with `.txt` files.        | Markdown file (`.md`).                     |
+| **Header Parsing**                   | Handles `#` to `######` headers.           | Converts folder depth to Markdown headers. |
+| **Whitespace Retention**             | Retains and handles empty lines.           | Includes content from `.txt` files.        |
+| **Combining `.combX` Folders**       | Renames duplicate folders to `.combX`.     | Groups `.combX` folders under single header. |
+| **Interactive GUI**                  | File and folder selection, rename options. | Folder selection, header level, save path. |
+| **Error Handling**                   | Handles missing files, duplicate folders.  | Handles invalid selections, empty folders. |
 
 ---
 
-### Notes
-1. **Dependencies**:
-   - Both scripts require the `tkinter` module for GUI-based file and directory selection.
-   - Ensure the target system supports `os.path.getctime` for file creation time.
+## **Usage Scenarios**
+- **MD2tree Decompiler**:
+  - Preparing structured data from Markdown for use in file-based workflows.
+  - Automating folder generation for hierarchical content management.
 
-2. **Cross-Compatibility**:
-   - The scripts are compatible and can handle `.combX.txt` files introduced by the other script.
-
-3. **Extensibility**:
-   - Both scripts are modular and can be extended to handle additional file types or rules.
+- **Tree2MD Recompiler**:
+  - Rebuilding Markdown documents from file-based content.
+  - Converting file system structures back into editable Markdown for documentation or publishing.
