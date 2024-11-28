@@ -59,8 +59,10 @@ def folder_to_markdown(folder_path, level=1):
             with open(entry_path, "r", encoding="utf-8") as file:
                 content = file.read().strip()
             if content:
+                if markdown_lines and not markdown_lines[-1].endswith("<br>"):
+                    # Append a blank line with <br> before new content, if not already present
+                    markdown_lines.append("<br>")
                 markdown_lines.append(content)
-                markdown_lines.append("")  # Blank line after the content
 
     # Process grouped `.combX` folders
     for base_name, paths in combined_folders.items():

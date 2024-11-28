@@ -96,21 +96,25 @@ class Node:
 
 
 def rename_duplicate_folders(root_folder):
-    """Rename duplicate folder names by appending `.combX` to each instance."""
+    """Normalize and rename duplicate folder names by appending `.combX`."""
     folder_names = {}  # Dictionary to track folder names and their occurrences
 
-    # First pass: Traverse the structure and collect folder names
+    # Helper regex to normalize `_N` suffixes
+    normalize_pattern = re.compile(r"^(.*?)(?:_\d+)?$")
+
+    # First pass: Traverse the structure and collect normalized folder names
     for dirpath, dirnames, _ in os.walk(root_folder, topdown=False):
         for foldername in dirnames:
-            if foldername not in folder_names:
-                folder_names[foldername] = []
-            folder_names[foldername].append(os.path.join(dirpath, foldername))
+            normalized_name = normalize_pattern.match(foldername).group(1)  # Strip `_N` suffix
+            if normalized_name not in folder_names:
+                folder_names[normalized_name] = []
+            folder_names[normalized_name].append(os.path.join(dirpath, foldername))
 
-    # Second pass: Rename duplicates
-    for foldername, paths in folder_names.items():
+    # Second pass: Rename duplicates based on normalized names
+    for base_name, paths in folder_names.items():
         if len(paths) > 1:  # Only process duplicates
-            for i, path in enumerate(paths):
-                new_name = f"{foldername}.comb{i}"
+            for i, path in enumerate(sorted(paths)):  # Sort to maintain consistency
+                new_name = f"{base_name}.comb{i}"
                 new_path = os.path.join(os.path.dirname(path), new_name)
                 os.rename(path, new_path)
 
